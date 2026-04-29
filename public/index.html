@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hypnos Tool</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+    font-family:'Share Tech Mono',monospace;
+    background:#050507;
+    color:white;
+    overflow:hidden;
+}
+
+/* MÚSICA */
+.music-btn{
+    position:fixed;
+    top:10px;
+    right:15px;
+    font-size:22px;
+    cursor:pointer;
+    z-index:999;
+    color:#22c55e;
+    text-shadow:0 0 10px #22c55e;
+}
+
+/* FUNDO */
+canvas{
+    position:fixed;
+    top:0;
+    left:0;
+    z-index:0;
+    pointer-events:none;
+}
+
+/* CONTAINER */
+.container{
+    position:relative;
+    z-index:1;
+    max-width:800px;
+    margin:auto;
+    padding:20px;
+    text-align:center;
+}
+
+h1{
+    font-size:32px;
+    color:#a855f7;
+    text-shadow:0 0 15px #a855f7,0 0 25px #22c55e;
+}
+
+.subtitle{
+    color:#22c55e;
+    margin-bottom:20px;
+}
+
+/* CARD */
+.card{
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(10px);
+    padding:20px;
+    border-radius:20px;
+}
+
+/* DROP */
+.drop{
+    border:2px dashed #a855f7;
+    padding:30px;
+    border-radius:15px;
+    cursor:pointer;
+    margin-bottom:15px;
+}
+
+/* BOTÕES */
+button{
+    padding:10px 18px;
+    margin:8px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(45deg,#a855f7,#22c55e);
+    color:white;
+    cursor:pointer;
+}
+
+/* IMAGEM ÚNICA */
+.result img{
+    width:100%;
+    margin-top:15px;
+    border-radius:15px;
+}
+
+/* LOADER */
+.loader{
+    display:none;
+    margin-top:10px;
+    color:#22c55e;
+}
+.loader::after{
+    content:"...";
+    animation:dots 1s infinite;
+}
+@keyframes dots{
+    0%{content:".";}
+    50%{content:"..";}
+    100%{content:"...";}
+}
+</style>
+</head>
+
+<body>
+
+<div class="music-btn" onclick="toggleMusic()" id="musicIcon">▶</div>
+
+<canvas id="bg"></canvas>
+
+<audio id="music" src="music2.mp3" loop></audio>
+
+<div class="container">
+
+<h1>Hypnos Tool</h1>
+<div class="subtitle">Neural Background Remover</div>
+
+<div class="card">
+
+<div class="drop" id="drop">
+Clique ou arraste imagem
+<input type="file" id="file" hidden>
+</div>
+
+<button id="btnRemover">Processar IA</button>
+<button id="btnDownload">Baixar</button>
+
+<div class="loader" id="loader">Processando IA</div>
+
+<div class="result">
+<img id="image">
+</div>
+
+</div>
+</div>
+
+<script>
+
+// FUNDO
+const canvas=document.getElementById("bg");
+const ctx=canvas.getContext("2d");
+
+function resize(){
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+}
+resize();
+window.onresize=resize;
+
+let p=[];
+for(let i=0;i<50;i++){
+p.push({
+x:Math.random()*canvas.width,
+y:Math.random()*canvas.height,
+dx:(Math.random()-0.5)*0.5,
+dy:(Math.random()-0.5)*0.5
+});
+}
+
+function anim(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+p.forEach(a=>{
+a.x+=a.dx;
+a.y+=a.dy;
+
+ctx.beginPath();
+ctx.arc(a.x,a.y,2,0,6.28);
+ctx.fillStyle="#22c55e";
+ctx.fill();
+});
+
+requestAnimationFrame(anim);
+}
+anim();
+
+// MÚSICA
+const music=document.getElementById("music");
+const icon=document.getElementById("musicIcon");
+
+function toggleMusic(){
+if(music.paused){
+music.play();
+icon.textContent="⏸";
+}else{
+music.pause();
+icon.textContent="▶";
+}
+}
+
+// UPLOAD
+let fileInput=document.getElementById("file");
+let drop=document.getElementById("drop");
+let image=document.getElementById("image");
+let loader=document.getElementById("loader");
+
+let selectedFile;
+let resultURL;
+
+drop.onclick=()=>fileInput.click();
+
+fileInput.onchange=e=>{
+if(e.target.files[0]){
+selectedFile=e.target.files[0];
+image.src=URL.createObjectURL(selectedFile);
+}
+};
+
+drop.addEventListener("dragover",e=>e.preventDefault());
+drop.addEventListener("drop",e=>{
+e.preventDefault();
+selectedFile=e.dataTransfer.files[0];
+image.src=URL.createObjectURL(selectedFile);
+});
+
+// PROCESSAR
+document.getElementById("btnRemover").onclick=async()=>{
+if(!selectedFile) return alert("Escolha imagem");
+
+loader.style.display="block";
+
+let form=new FormData();
+form.append("imagem",selectedFile);
+
+try{
+let res=await fetch("/remover",{method:"POST",body:form});
+let blob=await res.blob();
+let url=URL.createObjectURL(blob);
+
+// 🔥 SUBSTITUI A IMAGEM ORIGINAL
+image.src=url;
+
+resultURL=url;
+
+}catch{
+alert("Erro");
+}
+
+loader.style.display="none";
+};
+
+// DOWNLOAD
+document.getElementById("btnDownload").onclick=()=>{
+if(!resultURL) return alert("Nada para baixar");
+
+let a=document.createElement("a");
+a.href=resultURL;
+a.download="hypnos.png";
+a.click();
+};
+
+</script>
+
+</body>
+</html>
