@@ -11,119 +11,129 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 
 body{
-    font-family:'Share Tech Mono',monospace;
-    background:#050507;
-    color:white;
-    overflow:hidden;
+  font-family:'Share Tech Mono', monospace;
+  background:#050507;
+  color:white;
+  overflow:hidden;
 }
 
-/* MÚSICA */
-.music-btn{
-    position:fixed;
-    top:10px;
-    right:15px;
-    font-size:22px;
-    cursor:pointer;
-    z-index:999;
-    color:#22c55e;
-    text-shadow:0 0 10px #22c55e;
+#musicBtn{
+  position:fixed;
+  top:10px;
+  left:15px;
+  font-size:20px;
+  cursor:pointer;
+  z-index:999;
+  color:#22c55e;
 }
 
-/* FUNDO */
+#loginBtn{
+  position:fixed;
+  top:10px;
+  right:15px;
+  font-size:14px;
+  padding:6px 10px;
+  border:1px solid #a855f7;
+  border-radius:8px;
+  background:transparent;
+  color:#a855f7;
+  cursor:pointer;
+  z-index:999;
+}
+
 canvas{
-    position:fixed;
-    top:0;
-    left:0;
-    z-index:0;
-    pointer-events:none;
+  position:fixed;
+  top:0;
+  left:0;
+  z-index:0;
 }
 
-/* CONTAINER */
 .container{
-    position:relative;
-    z-index:1;
-    max-width:800px;
-    margin:auto;
-    padding:20px;
-    text-align:center;
+  position:relative;
+  z-index:1;
+  max-width:800px;
+  margin:auto;
+  padding:20px;
+  text-align:center;
 }
 
 h1{
-    font-size:32px;
-    color:#a855f7;
-    text-shadow:0 0 15px #a855f7,0 0 25px #22c55e;
+  font-size:32px;
+  color:#a855f7;
+  text-shadow:0 0 15px #a855f7,0 0 25px #22c55e;
 }
 
 .subtitle{
-    color:#22c55e;
-    margin-bottom:20px;
+  color:#22c55e;
+  margin-bottom:15px;
 }
 
-/* CARD */
+.credits{
+  display:inline-block;
+  margin:10px auto 20px auto;
+  padding:8px 14px;
+  border-radius:12px;
+  border:1px solid #22c55e;
+  background:rgba(0,0,0,0.4);
+  color:#22c55e;
+}
+
 .card{
-    background:rgba(255,255,255,0.05);
-    backdrop-filter:blur(10px);
-    padding:20px;
-    border-radius:20px;
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(10px);
+  padding:20px;
+  border-radius:20px;
 }
 
-/* DROP */
 .drop{
-    border:2px dashed #a855f7;
-    padding:30px;
-    border-radius:15px;
-    cursor:pointer;
-    margin-bottom:15px;
+  border:2px dashed #a855f7;
+  padding:30px;
+  border-radius:15px;
+  cursor:pointer;
+  margin-bottom:15px;
 }
 
-/* BOTÕES */
 button{
-    padding:10px 18px;
-    margin:8px;
-    border:none;
-    border-radius:10px;
-    background:linear-gradient(45deg,#a855f7,#22c55e);
-    color:white;
-    cursor:pointer;
+  padding:10px 18px;
+  margin:8px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(45deg,#a855f7,#22c55e);
+  color:white;
+  cursor:pointer;
 }
 
-/* IMAGEM ÚNICA */
-.result img{
-    width:100%;
-    margin-top:15px;
-    border-radius:15px;
-}
-
-/* LOADER */
 .loader{
-    display:none;
-    margin-top:10px;
-    color:#22c55e;
+  display:none;
+  margin-top:10px;
+  color:#22c55e;
 }
-.loader::after{
-    content:"...";
-    animation:dots 1s infinite;
-}
-@keyframes dots{
-    0%{content:".";}
-    50%{content:"..";}
-    100%{content:"...";}
+
+.result img{
+  width:100%;
+  margin-top:15px;
+  border-radius:15px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="music-btn" onclick="toggleMusic()" id="musicIcon">▶</div>
+<div id="musicBtn">▶</div>
+<button id="loginBtn">Login</button>
+
+<audio id="music" loop>
+<source src="music2.mp3">
+</audio>
 
 <canvas id="bg"></canvas>
-
-<audio id="music" src="music2.mp3" loop></audio>
 
 <div class="container">
 
 <h1>Hypnos Tool</h1>
-<div class="subtitle">Neural Background Remover</div>
+<div class="subtitle">AI Background Remove</div>
+
+<div class="credits" id="credits">Créditos: --</div>
 
 <div class="card">
 
@@ -135,7 +145,7 @@ Clique ou arraste imagem
 <button id="btnRemover">Processar IA</button>
 <button id="btnDownload">Baixar</button>
 
-<div class="loader" id="loader">Processando IA</div>
+<div class="loader" id="loader">Processando...</div>
 
 <div class="result">
 <img id="image">
@@ -144,119 +154,156 @@ Clique ou arraste imagem
 </div>
 </div>
 
-<script>
+<script type="module">
 
-// FUNDO
+/* ================= SUPABASE ================= */
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+const supabase = createClient(
+  "https://zitpnlfaonobctdkjuin.supabase.co",
+  "sb_publishable_QwBD8AEj_oHaAfgNpu6JzQ_FCjoq069"
+);
+
+/* LOGIN GOOGLE */
+document.getElementById("loginBtn").onclick = async () => {
+  await supabase.auth.signInWithOAuth({
+    provider: "google"
+  });
+};
+
+/* USER */
+let userId = null;
+
+async function loadUser(){
+  const { data } = await supabase.auth.getUser();
+  userId = data.user?.id;
+
+  if(userId){
+    document.getElementById("loginBtn").innerText = "Logado";
+    updateCredits();
+  }
+}
+
+supabase.auth.onAuthStateChange(() => {
+  loadUser();
+});
+
+/* UPLOAD */
+let file;
+
+document.getElementById("drop").onclick=()=>{
+  document.getElementById("file").click();
+};
+
+document.getElementById("file").onchange=e=>{
+  file = e.target.files[0];
+  document.getElementById("image").src = URL.createObjectURL(file);
+};
+
+/* CREDITS */
+async function updateCredits(){
+  const res = await fetch("/credits?uid=" + userId);
+  const data = await res.json();
+
+  document.getElementById("credits").innerText =
+    "Créditos: " + data.credits;
+
+  const btn = document.getElementById("btnRemover");
+
+  btn.disabled = data.credits <= 0;
+  btn.innerText = data.credits <= 0 ? "Sem créditos" : "Processar IA";
+}
+
+/* PROCESS */
+document.getElementById("btnRemover").onclick=async()=>{
+
+  if(!file) return alert("Escolha imagem");
+
+  document.getElementById("loader").style.display="block";
+
+  const form = new FormData();
+  form.append("imagem", file);
+  form.append("uid", userId);
+
+  const res = await fetch("/remover",{method:"POST",body:form});
+
+  if(!res.ok){
+    alert(await res.text());
+    return;
+  }
+
+  const blob = await res.blob();
+  document.getElementById("image").src = URL.createObjectURL(blob);
+
+  updateCredits();
+  document.getElementById("loader").style.display="none";
+};
+
+/* DOWNLOAD */
+document.getElementById("btnDownload").onclick=()=>{
+  const img=document.getElementById("image").src;
+  if(!img) return;
+
+  const a=document.createElement("a");
+  a.href=img;
+  a.download="hypnos.png";
+  a.click();
+};
+
+/* MUSIC */
+const music=document.getElementById("music");
+let playing=false;
+
+document.getElementById("musicBtn").onclick=()=>{
+  if(!playing){
+    music.play();
+    playing=true;
+  }else{
+    music.pause();
+    playing=false;
+  }
+};
+
+/* BACKGROUND */
 const canvas=document.getElementById("bg");
 const ctx=canvas.getContext("2d");
 
 function resize(){
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
+  canvas.width=innerWidth;
+  canvas.height=innerHeight;
 }
 resize();
 window.onresize=resize;
 
 let p=[];
 for(let i=0;i<50;i++){
-p.push({
-x:Math.random()*canvas.width,
-y:Math.random()*canvas.height,
-dx:(Math.random()-0.5)*0.5,
-dy:(Math.random()-0.5)*0.5
-});
+  p.push({
+    x:Math.random()*canvas.width,
+    y:Math.random()*canvas.height,
+    dx:(Math.random()-0.5),
+    dy:(Math.random()-0.5)
+  });
 }
 
 function anim(){
-ctx.clearRect(0,0,canvas.width,canvas.height);
-p.forEach(a=>{
-a.x+=a.dx;
-a.y+=a.dy;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-ctx.beginPath();
-ctx.arc(a.x,a.y,2,0,6.28);
-ctx.fillStyle="#22c55e";
-ctx.fill();
-});
+  p.forEach(o=>{
+    o.x+=o.dx;
+    o.y+=o.dy;
 
-requestAnimationFrame(anim);
+    if(o.x<0||o.x>canvas.width) o.dx*=-1;
+    if(o.y<0||o.y>canvas.height) o.dy*=-1;
+
+    ctx.beginPath();
+    ctx.arc(o.x,o.y,2,0,6.28);
+    ctx.fillStyle="#22c55e";
+    ctx.fill();
+  });
+
+  requestAnimationFrame(anim);
 }
 anim();
-
-// MÚSICA
-const music=document.getElementById("music");
-const icon=document.getElementById("musicIcon");
-
-function toggleMusic(){
-if(music.paused){
-music.play();
-icon.textContent="⏸";
-}else{
-music.pause();
-icon.textContent="▶";
-}
-}
-
-// UPLOAD
-let fileInput=document.getElementById("file");
-let drop=document.getElementById("drop");
-let image=document.getElementById("image");
-let loader=document.getElementById("loader");
-
-let selectedFile;
-let resultURL;
-
-drop.onclick=()=>fileInput.click();
-
-fileInput.onchange=e=>{
-if(e.target.files[0]){
-selectedFile=e.target.files[0];
-image.src=URL.createObjectURL(selectedFile);
-}
-};
-
-drop.addEventListener("dragover",e=>e.preventDefault());
-drop.addEventListener("drop",e=>{
-e.preventDefault();
-selectedFile=e.dataTransfer.files[0];
-image.src=URL.createObjectURL(selectedFile);
-});
-
-// PROCESSAR
-document.getElementById("btnRemover").onclick=async()=>{
-if(!selectedFile) return alert("Escolha imagem");
-
-loader.style.display="block";
-
-let form=new FormData();
-form.append("imagem",selectedFile);
-
-try{
-let res=await fetch("/remover",{method:"POST",body:form});
-let blob=await res.blob();
-let url=URL.createObjectURL(blob);
-
-// 🔥 SUBSTITUI A IMAGEM ORIGINAL
-image.src=url;
-
-resultURL=url;
-
-}catch{
-alert("Erro");
-}
-
-loader.style.display="none";
-};
-
-// DOWNLOAD
-document.getElementById("btnDownload").onclick=()=>{
-if(!resultURL) return alert("Nada para baixar");
-
-let a=document.createElement("a");
-a.href=resultURL;
-a.download="hypnos.png";
-a.click();
-};
 
 </script>
 
